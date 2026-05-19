@@ -27,6 +27,14 @@ struct LogTab: View {
     @State private var whoopHRV: Double? = nil
     @State private var whoopRHR: Int? = nil
 
+    // Sleep stage breakdown held on the form between import and save.
+    @State private var remMin: Int? = nil
+    @State private var deepMin: Int? = nil
+    @State private var lightMin: Int? = nil
+    @State private var awakeStageMin: Int? = nil
+    @State private var sleepCycles: Int? = nil
+    @State private var hypnogramJSON: String? = nil
+
     // Computed live metrics for the preview card (no @Model instance needed).
     private var previewTIB: Int {
         let inB = hhmmString(inBedDate).hhmmMinutes
@@ -57,16 +65,46 @@ struct LogTab: View {
     private var iosBody: some View {
         Form {
             Section {
-                Text("Fill this in each morning within 30 minutes of waking. Use estimates — do not check the clock at night.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("MORNING LOG").kicker()
+                    Text("How was the night?")
+                        .font(.serifH1)
+                        .foregroundStyle(Color.fg1)
+                    Text("Estimates are fine — better than checking a clock.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.fg3)
+                        .padding(.top, 2)
+                }
+                .padding(.top, 4)
             }
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
 
+            if hasStageData {
+                Section {
+                    sleepDetailCard
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 4, trailing: 16))
+            } else {
+                Section {
+                    SleepBlockViz(
+                        tib: previewTIB,
+                        latency: latency,
+                        wakeMin: wakeMin,
+                        inBed: hhmmString(inBedDate),
+                        outBed: hhmmString(outBedDate)
+                    )
+                    .padding(.vertical, 6)
+                }
+                .listRowBackground(Color.bgSurface)
+                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+            }
+
             Section {
                 importRowIOS
             }
+            .listRowBackground(Color.bgSurface)
 
             Section("Times") {
                 formTimeRow("Got into bed", $inBedDate)
@@ -74,24 +112,29 @@ struct LogTab: View {
                 formTimeRow("Final wake-up", $finalWakeDate)
                 formTimeRow("Out of bed", $outBedDate)
             }
+            .listRowBackground(Color.bgSurface)
 
             Section("Night details") {
                 formNumberRow("Minutes to fall asleep", value: $latency, range: 0...300)
                 formNumberRow("Times woke", value: $wakeCount, range: 0...20)
                 formNumberRow("Minutes awake", value: $wakeMin, range: 0...500)
             }
+            .listRowBackground(Color.bgSurface)
 
             Section("Ratings") {
                 formRatingRow("Sleep quality", value: $quality)
                 formRatingRow("Morning mood", value: $mood)
             }
+            .listRowBackground(Color.bgSurface)
 
-            // Edge-to-edge visual preview card — three big numbers.
-            Section {
-                previewCardIOS
+            // Edge-to-edge visual preview card — three big numbers (only when stages aren't shown).
+            if !hasStageData {
+                Section {
+                    previewCardIOS
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 4, trailing: 16))
             }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 4, trailing: 16))
 
             if hasWhoopContext {
                 Section {
@@ -104,27 +147,30 @@ struct LogTab: View {
             // Full-width save button.
             Section {
                 Button(action: save) {
-                    HStack {
+                    HStack(spacing: 8) {
                         Spacer()
                         if !saveFeedback.isEmpty {
-                            Image(systemName: "checkmark")
+                            Image(systemName: "checkmark.circle.fill")
                             Text(saveFeedback)
-                        } else if todaysLog != nil {
-                            Text("Update today's log")
                         } else {
-                            Text("Save today's log")
+                            Image(systemName: "checkmark")
+                            Text(todaysLog != nil ? "Update today's log" : "Save morning log")
                         }
                         Spacer()
                     }
                     .fontWeight(.semibold)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 12)
+                    .background(Color.warmAmber)
+                    .foregroundStyle(Color(red: 0x06/255, green: 0x09/255, blue: 0x12/255))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(.plain)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 24, trailing: 16))
             }
         }
+        .scrollContentBackground(.hidden)
+        .appBackground()
         .onAppear(perform: loadExistingForToday)
     }
     #endif
@@ -167,7 +213,11 @@ struct LogTab: View {
                     .padding(.vertical, 4)
                 }
 
-                previewCard
+                sleepDetailCard
+
+                if !hasStageData {
+                    previewCard
+                }
 
                 whoopContextCard
 
@@ -265,9 +315,11 @@ struct LogTab: View {
     /// Apple Watch (HealthKit) is preferred for sleep timing because it exposes
     /// explicit per-event wake samples and sleep latency. Whoop fills in strain
     /// and recovery (Whoop-only metrics) and serves as fallback when the strap
-    /// was off / Watch wasn't worn.
+    /// was off / Watch wasn't worn. For stage data we prefer HealthKit too, since
+    /// it provides the sample-level hypnogram — Whoop only exposes totals.
     private func mergeDrafts(healthKit hk: SleepLogDraft?, whoop wh: SleepLogDraft?) -> SleepLogDraft? {
         guard let primary = hk ?? wh else { return nil }
+        let stageSource = (hk?.remMin != nil || hk?.deepMin != nil || hk?.lightMin != nil) ? hk : wh
         return SleepLogDraft(
             date: primary.date,
             inBed: primary.inBed,
@@ -282,7 +334,13 @@ struct LogTab: View {
             whoopStrain: wh?.whoopStrain,
             whoopRecovery: wh?.whoopRecovery,
             whoopHRV: hk?.whoopHRV ?? wh?.whoopHRV,
-            whoopRHR: hk?.whoopRHR ?? wh?.whoopRHR
+            whoopRHR: hk?.whoopRHR ?? wh?.whoopRHR,
+            remMin: stageSource?.remMin,
+            deepMin: stageSource?.deepMin,
+            lightMin: stageSource?.lightMin,
+            awakeMin: stageSource?.awakeMin,
+            sleepCycles: wh?.sleepCycles,
+            hypnogramJSON: hk?.hypnogramJSON
         )
     }
 
@@ -293,15 +351,167 @@ struct LogTab: View {
         outBedDate = parseHHMM(draft.outBed)
         wakeCount = draft.wakeCount
         wakeMin = draft.wakeMin
+        latency = draft.latency
         whoopStrain = draft.whoopStrain
         whoopRecovery = draft.whoopRecovery
         whoopHRV = draft.whoopHRV
         whoopRHR = draft.whoopRHR
-        // Leave latency, quality, and mood for the user to fill — Whoop doesn't provide them.
+        remMin = draft.remMin
+        deepMin = draft.deepMin
+        lightMin = draft.lightMin
+        awakeStageMin = draft.awakeMin
+        sleepCycles = draft.sleepCycles
+        hypnogramJSON = draft.hypnogramJSON
+        // Leave quality and mood for the user to fill — neither source provides those.
     }
 
     private var hasWhoopContext: Bool {
         whoopStrain != nil || whoopRecovery != nil || whoopHRV != nil || whoopRHR != nil
+    }
+
+    private var hasStageData: Bool {
+        (remMin ?? 0) + (deepMin ?? 0) + (lightMin ?? 0) > 0
+    }
+
+    /// Reconstructs sleep window dates from the form's inBed / outBed for the hypnogram.
+    /// Hypnogram events have full Date values from HealthKit; the window is anchored to today's
+    /// log date so they align visually.
+    private var sleepWindow: (start: Date, end: Date)? {
+        guard hasStageData else { return nil }
+        let events = Array<HypnogramEvent>.decode(hypnogramJSON)
+        if let first = events.first, let last = events.last {
+            return (first.start, last.end)
+        }
+        // No event-level data — approximate window from form times for the hypnogram axis labels.
+        let cal = Calendar.current
+        let today = Date()
+        let inComps = cal.dateComponents([.hour, .minute], from: inBedDate)
+        let outComps = cal.dateComponents([.hour, .minute], from: outBedDate)
+        var startComps = cal.dateComponents([.year, .month, .day], from: today)
+        startComps.hour = inComps.hour
+        startComps.minute = inComps.minute
+        var endComps = startComps
+        endComps.hour = outComps.hour
+        endComps.minute = outComps.minute
+        guard let s = cal.date(from: startComps), var e = cal.date(from: endComps) else { return nil }
+        if e <= s { e = e.addingTimeInterval(86_400) }
+        return (s, e)
+    }
+
+    /// Apple/Whoop-style sleep detail block. Renders only when stage data is present
+    /// (either from an import or carried over from a saved log).
+    @ViewBuilder
+    private var sleepDetailCard: some View {
+        if hasStageData {
+            let events = Array<HypnogramEvent>.decode(hypnogramJSON)
+            let stageTST = (remMin ?? 0) + (deepMin ?? 0) + (lightMin ?? 0)
+            let stageTIB = stageTST + (awakeStageMin ?? 0)
+            let stageEff = stageTIB > 0 ? Int((Double(stageTST) / Double(stageTIB) * 100).rounded()) : previewSE
+            let restorative = (remMin ?? 0) + (deepMin ?? 0)
+
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 6) {
+                    Image(systemName: "moon.stars.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.warmAmber)
+                    Text("LAST NIGHT'S SLEEP").kicker()
+                }
+
+                SleepSummaryHero(
+                    tstMin: stageTST,
+                    tibMin: stageTIB,
+                    restorativeMin: restorative > 0 ? restorative : nil,
+                    efficiency: stageEff
+                )
+
+                if !events.isEmpty, let win = sleepWindow {
+                    HypnogramView(events: events, windowStart: win.start, windowEnd: win.end)
+                        .padding(.top, 4)
+                } else if let win = sleepWindow {
+                    Text("Sleep stages (no per-event data available)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.fg4)
+                    HypnogramView(
+                        events: syntheticEvents(start: win.start, end: win.end),
+                        windowStart: win.start,
+                        windowEnd: win.end
+                    )
+                }
+
+                Divider().background(Color.borderSoft)
+
+                Text("TIME IN STAGES").kicker()
+                StageBreakdownView(
+                    remMin: remMin ?? 0,
+                    deepMin: deepMin ?? 0,
+                    lightMin: lightMin ?? 0,
+                    awakeMin: awakeStageMin ?? 0
+                )
+
+                Divider().background(Color.borderSoft)
+
+                HStack(alignment: .top, spacing: 16) {
+                    AwakeningsCard(count: wakeCount, awakeMin: awakeStageMin ?? wakeMin)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if let cycles = sleepCycles, cycles > 0 {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color.skyAccent)
+                                Text("CYCLES").kicker()
+                            }
+                            Text("\(cycles)")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(Color.fg1)
+                                .monospacedDigit()
+                            Text("sleep cycles")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.fg3)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+            .warmCard()
+        }
+    }
+
+    /// When we have stage totals but no event-level data (Whoop-only night), distribute
+    /// the totals across the window in a reasonable cycle pattern so the hypnogram still
+    /// communicates rough structure rather than appearing blank.
+    private func syntheticEvents(start: Date, end: Date) -> [HypnogramEvent] {
+        let totalSec = end.timeIntervalSince(start)
+        let totalMin = totalSec / 60
+        guard totalMin > 30 else { return [] }
+        let rem = Double(remMin ?? 0)
+        let deep = Double(deepMin ?? 0)
+        let light = Double(lightMin ?? 0)
+        let awake = Double(awakeStageMin ?? 0)
+        let sumStages = rem + deep + light + awake
+        guard sumStages > 0 else { return [] }
+
+        // Build 5 buckets across the night with biologically-plausible weighting:
+        // deep concentrated early, REM later, awake sprinkled, light always present.
+        let cycles: [(SleepStage, Double)] = [
+            (.light, light * 0.18), (.deep, deep * 0.35), (.light, light * 0.18), (.rem, rem * 0.12), (.awake, awake * 0.2),
+            (.light, light * 0.18), (.deep, deep * 0.30), (.rem, rem * 0.18), (.light, light * 0.10), (.awake, awake * 0.15),
+            (.light, light * 0.18), (.deep, deep * 0.20), (.rem, rem * 0.25), (.light, light * 0.12), (.awake, awake * 0.2),
+            (.light, light * 0.16), (.deep, deep * 0.10), (.rem, rem * 0.25), (.light, light * 0.12), (.awake, awake * 0.2),
+            (.light, light * 0.12), (.deep, deep * 0.05), (.rem, rem * 0.20), (.light, light * 0.30), (.awake, awake * 0.25),
+        ]
+        let normalizer = sumStages / cycles.reduce(0) { $0 + $1.1 }
+        var cursor = start
+        var out: [HypnogramEvent] = []
+        for (stage, weight) in cycles {
+            let dur = weight * normalizer * 60
+            guard dur > 30 else { continue }
+            let next = cursor.addingTimeInterval(dur)
+            out.append(HypnogramEvent(stage: stage, start: cursor, end: min(next, end)))
+            cursor = next
+            if cursor >= end { break }
+        }
+        return out
     }
 
     #if os(iOS)
@@ -383,18 +593,23 @@ struct LogTab: View {
     private func previewBox(label: String, value: String, tint: Color? = nil) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.title3)
-                .fontWeight(.semibold)
+                .font(.system(size: 18, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(tint ?? .primary)
+                .foregroundStyle(tint ?? Color.fg1)
             Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11))
+                .foregroundStyle(Color.fg4)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.bgSurface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.borderSoft, lineWidth: 1)
+                )
+        )
     }
 
     // 2×2 grid of Whoop stats with color-coded values.
@@ -433,18 +648,23 @@ struct LogTab: View {
     private func whoopStatBox(_ item: WhoopGridItem) -> some View {
         VStack(spacing: 4) {
             Text(item.value)
-                .font(.title3)
-                .fontWeight(.semibold)
+                .font(.system(size: 18, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(item.tint ?? .primary)
+                .foregroundStyle(item.tint ?? Color.fg1)
             Text(item.label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11))
+                .foregroundStyle(Color.fg4)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.bgSurface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.borderSoft, lineWidth: 1)
+                )
+        )
     }
     #endif
 
@@ -568,6 +788,12 @@ struct LogTab: View {
         whoopRecovery = log.whoopRecovery
         whoopHRV = log.whoopHRV
         whoopRHR = log.whoopRHR
+        remMin = log.remMin
+        deepMin = log.deepMin
+        lightMin = log.lightMin
+        awakeStageMin = log.awakeMin
+        sleepCycles = log.sleepCycles
+        hypnogramJSON = log.hypnogramJSON
     }
 
     private func save() {
@@ -587,6 +813,12 @@ struct LogTab: View {
             existing.whoopRecovery = whoopRecovery
             existing.whoopHRV = whoopHRV
             existing.whoopRHR = whoopRHR
+            existing.remMin = remMin
+            existing.deepMin = deepMin
+            existing.lightMin = lightMin
+            existing.awakeMin = awakeStageMin
+            existing.sleepCycles = sleepCycles
+            existing.hypnogramJSON = hypnogramJSON
         } else {
             let log = SleepLog(
                 date: date,
@@ -602,7 +834,13 @@ struct LogTab: View {
                 whoopStrain: whoopStrain,
                 whoopRecovery: whoopRecovery,
                 whoopHRV: whoopHRV,
-                whoopRHR: whoopRHR
+                whoopRHR: whoopRHR,
+                remMin: remMin,
+                deepMin: deepMin,
+                lightMin: lightMin,
+                awakeMin: awakeStageMin,
+                sleepCycles: sleepCycles,
+                hypnogramJSON: hypnogramJSON
             )
             context.insert(log)
         }

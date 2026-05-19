@@ -9,47 +9,118 @@ struct ProgressTab: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    Text("Progress")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    Spacer()
-                    exportMenu
-                        .disabled(logs.isEmpty)
-                }
+            VStack(alignment: .leading, spacing: 14) {
+                header
 
                 if logs.count < 2 {
                     emptyState
                 } else {
-                    statsRow
                     if let avg = logs.recent5AvgSE {
-                        advisoryBanner(avg: avg)
+                        ringsHero(avg: avg)
                     }
                     chartSection(
-                        title: "Sleep efficiency (last 14 nights)",
+                        title: "Sleep efficiency",
                         yDomain: 0...100,
                         valueFormatter: { "\($0)%" },
                         referenceLine: 85,
-                        color: Color(red: 0x18/255, green: 0x5F/255, blue: 0xA5/255),
+                        color: Color.warmAmber,
                         values: recentLogs.map { (log: $0, y: Double($0.se)) }
                     )
                     chartSection(
-                        title: "Sleep quality rating",
+                        title: "Sleep quality",
                         yDomain: 1...10,
                         valueFormatter: { "\(Int($0))/10" },
                         referenceLine: nil,
-                        color: Color(red: 0x1D/255, green: 0x9E/255, blue: 0x75/255),
+                        color: Color.skyAccent,
                         values: recentLogs.map { (log: $0, y: Double($0.quality)) }
                     )
+                    statsRow
+
+                    if recentLogs.contains(where: { $0.hasStageData }) {
+                        sleepStagesChart
+                    }
 
                     if recentLogs.contains(where: { $0.whoopRecovery != nil || $0.whoopStrain != nil }) {
                         recoveryStrainChart
                     }
                 }
             }
-            .padding(20)
+            .padding(.horizontal, 18)
+            .padding(.top, 8)
+            .padding(.bottom, 36)
         }
+        .scrollContentBackground(.hidden)
+        .appBackground()
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) { exportMenu.disabled(logs.isEmpty) }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("\(logs.count) NIGHTS").kicker()
+            Text(headerTitle)
+                .font(.serifH1)
+                .foregroundStyle(Color.fg1)
+                .padding(.bottom, 6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var headerTitle: String {
+        guard let avg = logs.recent5AvgSE else { return "Your sleep journey." }
+        if avg >= 85 { return "Your sleep is consolidating." }
+        if avg >= 75 { return "Steady progress — hold the line." }
+        return "Build pressure. It will land."
+    }
+
+    private func ringsHero(avg: Int) -> some View {
+        HStack(spacing: 16) {
+            ProgressRing(value: Double(avg), size: 110, stroke: 10, color: Color.seSwiftUIColor(avg)) {
+                VStack(spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 1) {
+                        Text("\(avg)")
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundStyle(Color.fg1)
+                            .monospacedDigit()
+                        Text("%").font(.system(size: 13)).foregroundStyle(Color.fg3)
+                    }
+                    Text("5-night SE").font(.system(size: 11)).foregroundStyle(Color.fg4)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                let label = avg >= 85 ? "ON TARGET" : avg >= 75 ? "BUILDING" : "HOLD POSITION"
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.seSwiftUIColor(avg))
+                let body = avg >= 85
+                    ? "You've crossed 85% — time to expand the window."
+                    : avg >= 75
+                        ? "Improvement is happening. Don't go to bed early."
+                        : "Sleep pressure is the engine. Keep restriction strict."
+                Text(body)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.fg2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.warmAmber.opacity(0.10), Color(red: 0x16/255, green: 0x20/255, blue: 0x3A/255).opacity(0.3)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.borderSoft, lineWidth: 1)
+                )
+        )
     }
 
     private var exportMenu: some View {
@@ -92,34 +163,44 @@ struct ProgressTab: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Log at least 2 nights to see your progress charts.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Text("The Morning Log tab has a dot next to it when today hasn't been logged yet.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            Text("Log at least 2 nights to see your progress.")
+                .font(.system(size: 14))
+                .foregroundStyle(Color.fg2)
+            Text("The Morning Log tab has a dot when today hasn't been logged yet.")
+                .font(.system(size: 12))
+                .foregroundStyle(Color.fg4)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 32)
+        .warmCard()
     }
 
     private var statsRow: some View {
-        HStack(spacing: 12) {
-            statBox("Current week", "Week \(weekNumber(from: logs))")
-            statBox("Nights logged", "\(logs.count)")
-            statBox("5-night avg SE", logs.recent5AvgSE.map { "\($0)%" } ?? "—")
+        HStack(spacing: 10) {
+            statBox("Current", "Week \(weekNumber(from: logs))")
+            statBox("Logged", "\(logs.count)")
+            statBox("5-night SE", logs.recent5AvgSE.map { "\($0)%" } ?? "—")
         }
     }
 
     private func statBox(_ label: String, _ value: String) -> some View {
-        VStack(spacing: 3) {
-            Text(value).font(.title3).fontWeight(.medium)
-            Text(label).font(.caption).foregroundStyle(.secondary)
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.fg1)
+                .monospacedDigit()
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundStyle(Color.fg4)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(Color.secondary.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.bgSurface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.borderSoft, lineWidth: 1)
+                )
+        )
     }
 
     private func advisoryBanner(avg: Int) -> some View {
@@ -157,6 +238,90 @@ struct ProgressTab: View {
             .background(bg)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(stroke, lineWidth: 0.5))
+    }
+
+    /// Stacked-bar trend — one bar per night, stages from bottom up: Deep, Core (Light),
+    /// REM, Awake. Matches Apple Health's "Sleep stages over time" view.
+    private var sleepStagesChart: some View {
+        let stagedLogs = recentLogs.filter { $0.hasStageData }
+        let avgRestorative: Int = {
+            let vals = stagedLogs.compactMap { $0.restorativeMin }
+            guard !vals.isEmpty else { return 0 }
+            return vals.reduce(0, +) / vals.count
+        }()
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Sleep stages")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.fg1)
+                Spacer()
+                if avgRestorative > 0 {
+                    WarmChip(text: "Avg restorative \(avgRestorative / 60)h \(avgRestorative % 60)m")
+                }
+            }
+            Text(stagedLogs.count > 14 ? "Last 14 nights" : "\(stagedLogs.count) nights")
+                .font(.system(size: 11))
+                .foregroundStyle(Color.fg4)
+
+            Chart {
+                ForEach(stagedLogs, id: \.persistentModelID) { log in
+                    let dateLabel = String(log.date.suffix(5))
+                    BarMark(
+                        x: .value("Date", dateLabel),
+                        y: .value("Deep", Double(log.deepMin ?? 0) / 60.0),
+                        stacking: .standard
+                    )
+                    .foregroundStyle(by: .value("Stage", SleepStage.deep.displayName))
+
+                    BarMark(
+                        x: .value("Date", dateLabel),
+                        y: .value("Core", Double(log.lightMin ?? 0) / 60.0),
+                        stacking: .standard
+                    )
+                    .foregroundStyle(by: .value("Stage", SleepStage.light.displayName))
+
+                    BarMark(
+                        x: .value("Date", dateLabel),
+                        y: .value("REM", Double(log.remMin ?? 0) / 60.0),
+                        stacking: .standard
+                    )
+                    .foregroundStyle(by: .value("Stage", SleepStage.rem.displayName))
+
+                    BarMark(
+                        x: .value("Date", dateLabel),
+                        y: .value("Awake", Double(log.awakeMin ?? 0) / 60.0),
+                        stacking: .standard
+                    )
+                    .foregroundStyle(by: .value("Stage", SleepStage.awake.displayName))
+                }
+            }
+            .chartForegroundStyleScale([
+                SleepStage.deep.displayName:  SleepStage.deep.color,
+                SleepStage.light.displayName: SleepStage.light.color,
+                SleepStage.rem.displayName:   SleepStage.rem.color,
+                SleepStage.awake.displayName: SleepStage.awake.color,
+            ])
+            .chartLegend(position: .bottom, alignment: .leading, spacing: 8)
+            .chartXAxis {
+                AxisMarks { _ in
+                    AxisValueLabel().foregroundStyle(Color.fg4)
+                }
+            }
+            .chartYAxis {
+                AxisMarks { value in
+                    AxisGridLine().foregroundStyle(Color.borderSoft)
+                    AxisValueLabel {
+                        if let hours = value.as(Double.self) {
+                            Text("\(Int(hours))h")
+                                .foregroundStyle(Color.fg4)
+                        }
+                    }
+                }
+            }
+            .frame(height: 200)
+        }
+        .warmCard()
     }
 
     private var recoveryStrainChart: some View {
@@ -227,31 +392,59 @@ struct ProgressTab: View {
         color: Color,
         values: [(log: SleepLog, y: Double)]
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.subheadline).fontWeight(.medium)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.fg1)
+                Spacer()
+                if let avg = logs.recent5AvgSE, title == "Sleep efficiency" {
+                    WarmChip(text: "Avg \(avg)%")
+                }
+            }
+            Text(values.count > 14 ? "Last 14 nights" : "\(values.count) nights")
+                .font(.system(size: 11))
+                .foregroundStyle(Color.fg4)
             Chart {
                 ForEach(values, id: \.log.persistentModelID) { item in
-                    LineMark(
+                    BarMark(
                         x: .value("Date", String(item.log.date.suffix(5))),
                         y: .value(title, item.y)
                     )
-                    .foregroundStyle(color)
-                    .symbol(.circle)
+                    .foregroundStyle(by: .value("SE band", item.y >= 85 ? "good" : item.y >= 75 ? "warn" : "crit"))
                 }
                 if let ref = referenceLine {
                     RuleMark(y: .value("Target", ref))
-                        .foregroundStyle(Color(red: 0x3B/255, green: 0x6D/255, blue: 0x11/255))
+                        .foregroundStyle(Color.good400.opacity(0.6))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 2]))
                         .annotation(position: .top, alignment: .trailing) {
-                            Text("\(Int(ref))%")
-                                .font(.caption2)
-                                .foregroundStyle(Color(red: 0x3B/255, green: 0x6D/255, blue: 0x11/255))
+                            Text(valueFormatter(ref))
+                                .font(.system(size: 10))
+                                .foregroundStyle(Color.good400)
                         }
                 }
             }
+            .chartForegroundStyleScale([
+                "good": Color.good400.opacity(0.85),
+                "warn": Color.warn400.opacity(0.85),
+                "crit": Color.crit400.opacity(0.85),
+            ])
+            .chartLegend(.hidden)
             .chartYScale(domain: yDomain)
-            .frame(height: 180)
+            .chartXAxis {
+                AxisMarks { _ in
+                    AxisValueLabel().foregroundStyle(Color.fg4)
+                }
+            }
+            .chartYAxis {
+                AxisMarks { _ in
+                    AxisGridLine().foregroundStyle(Color.borderSoft)
+                    AxisValueLabel().foregroundStyle(Color.fg4)
+                }
+            }
+            .frame(height: 160)
         }
+        .warmCard()
     }
 }
 

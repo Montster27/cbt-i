@@ -101,8 +101,18 @@ extension WhoopSleep {
         let outBed = hhmmStringFromDate(localEnd, calendar: utcCal)
         let dateString = ymdStringFromDate(localEnd, calendar: utcCal)
 
-        let awakeMs = score?.stage_summary?.total_awake_time_milli ?? 0
-        let disturbances = score?.stage_summary?.disturbance_count ?? 0
+        let stages = score?.stage_summary
+        let awakeMs = stages?.total_awake_time_milli ?? 0
+        let lightMs = stages?.total_light_sleep_time_milli ?? 0
+        let deepMs = stages?.total_slow_wave_sleep_time_milli ?? 0
+        let remMs = stages?.total_rem_sleep_time_milli ?? 0
+        let disturbances = stages?.disturbance_count ?? 0
+
+        let awakeMin = awakeMs / 60_000
+        let lightMin = lightMs / 60_000
+        let deepMin = deepMs / 60_000
+        let remMin = remMs / 60_000
+        let hasStages = lightMin + deepMin + remMin > 0
 
         return SleepLogDraft(
             date: dateString,
@@ -110,7 +120,7 @@ extension WhoopSleep {
             lightsOut: inBed,
             latency: 0,
             wakeCount: disturbances,
-            wakeMin: awakeMs / 60_000,
+            wakeMin: awakeMin,
             finalWake: outBed,
             outBed: outBed,
             quality: 5,
@@ -118,7 +128,13 @@ extension WhoopSleep {
             whoopStrain: cycle?.score?.strain,
             whoopRecovery: recovery?.score?.recovery_score.map { Int($0.rounded()) },
             whoopHRV: recovery?.score?.hrv_rmssd_milli,
-            whoopRHR: recovery?.score?.resting_heart_rate.map { Int($0.rounded()) }
+            whoopRHR: recovery?.score?.resting_heart_rate.map { Int($0.rounded()) },
+            remMin: hasStages ? remMin : nil,
+            deepMin: hasStages ? deepMin : nil,
+            lightMin: hasStages ? lightMin : nil,
+            awakeMin: hasStages ? awakeMin : nil,
+            sleepCycles: stages?.sleep_cycle_count,
+            hypnogramJSON: nil  // Whoop v2 API exposes stage totals only.
         )
     }
 }

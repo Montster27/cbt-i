@@ -146,13 +146,31 @@ enum Exporter {
         }
         out += "\n"
 
+        // Sleep stages — only emit the table when at least one night has stage data,
+        // otherwise it's noise. The columns match Apple Health / Whoop stage breakdowns.
+        if logs.contains(where: { $0.hasStageData }) {
+            out += "## Sleep stages\n\n"
+            out += "| Date | Awake | REM | Core | Deep | Restorative | Cycles |\n"
+            out += "| --- | --- | --- | --- | --- | --- | --- |\n"
+            for log in logs where log.hasStageData {
+                out += "| \(log.date)"
+                out += " | \(log.awakeMin.map(formatDurationMinutes) ?? "—")"
+                out += " | \(log.remMin.map(formatDurationMinutes) ?? "—")"
+                out += " | \(log.lightMin.map(formatDurationMinutes) ?? "—")"
+                out += " | \(log.deepMin.map(formatDurationMinutes) ?? "—")"
+                out += " | \(log.restorativeMin.map(formatDurationMinutes) ?? "—")"
+                out += " | \(log.sleepCycles.map(String.init) ?? "—") |\n"
+            }
+            out += "\n"
+        }
+
         return out
     }
 
     // MARK: - CSV
 
     private static func csvReport(logs: [SleepLog]) -> String {
-        var out = "date,in_bed,lights_out,latency_min,wake_count,wake_min,final_wake,out_bed,tib_min,tst_min,sleep_efficiency_pct,quality,mood,whoop_strain,whoop_recovery_pct,whoop_hrv_ms,whoop_rhr_bpm\n"
+        var out = "date,in_bed,lights_out,latency_min,wake_count,wake_min,final_wake,out_bed,tib_min,tst_min,sleep_efficiency_pct,quality,mood,whoop_strain,whoop_recovery_pct,whoop_hrv_ms,whoop_rhr_bpm,rem_min,deep_min,light_min,awake_stage_min,sleep_cycles\n"
         for log in logs {
             out += "\(log.date)"
             out += ",\(log.inBed)"
@@ -170,7 +188,12 @@ enum Exporter {
             out += ",\(log.whoopStrain.map { String(format: "%.2f", $0) } ?? "")"
             out += ",\(log.whoopRecovery.map { String($0) } ?? "")"
             out += ",\(log.whoopHRV.map { String(format: "%.1f", $0) } ?? "")"
-            out += ",\(log.whoopRHR.map { String($0) } ?? "")\n"
+            out += ",\(log.whoopRHR.map { String($0) } ?? "")"
+            out += ",\(log.remMin.map(String.init) ?? "")"
+            out += ",\(log.deepMin.map(String.init) ?? "")"
+            out += ",\(log.lightMin.map(String.init) ?? "")"
+            out += ",\(log.awakeMin.map(String.init) ?? "")"
+            out += ",\(log.sleepCycles.map(String.init) ?? "")\n"
         }
         return out
     }

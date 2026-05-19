@@ -21,6 +21,17 @@ final class SleepLog {
     var whoopHRV: Double? = nil           // milliseconds (rMSSD)
     var whoopRHR: Int? = nil              // resting heart rate, bpm
 
+    // Optional sleep-stage breakdown from HealthKit (Apple Watch) or Whoop.
+    // All in minutes. Nil when log was manual or stage data unavailable.
+    var remMin: Int? = nil
+    var deepMin: Int? = nil               // Apple "Deep", Whoop "Slow Wave"
+    var lightMin: Int? = nil              // Apple "Core", Whoop "Light"
+    var awakeMin: Int? = nil              // Stage-derived awake total (more accurate than wakeMin manual entry)
+    var sleepCycles: Int? = nil           // Whoop-only
+    /// JSON-encoded `[HypnogramEvent]` (start ISO, end ISO, stage). Only HealthKit
+    /// provides sample-level data — Whoop API exposes totals only.
+    var hypnogramJSON: String? = nil
+
     init(
         date: String,
         inBed: String,
@@ -35,7 +46,13 @@ final class SleepLog {
         whoopStrain: Double? = nil,
         whoopRecovery: Int? = nil,
         whoopHRV: Double? = nil,
-        whoopRHR: Int? = nil
+        whoopRHR: Int? = nil,
+        remMin: Int? = nil,
+        deepMin: Int? = nil,
+        lightMin: Int? = nil,
+        awakeMin: Int? = nil,
+        sleepCycles: Int? = nil,
+        hypnogramJSON: String? = nil
     ) {
         self.date = date
         self.inBed = inBed
@@ -51,6 +68,12 @@ final class SleepLog {
         self.whoopRecovery = whoopRecovery
         self.whoopHRV = whoopHRV
         self.whoopRHR = whoopRHR
+        self.remMin = remMin
+        self.deepMin = deepMin
+        self.lightMin = lightMin
+        self.awakeMin = awakeMin
+        self.sleepCycles = sleepCycles
+        self.hypnogramJSON = hypnogramJSON
     }
 }
 
@@ -72,6 +95,69 @@ struct SleepLogDraft {
     var whoopRecovery: Int? = nil
     var whoopHRV: Double? = nil
     var whoopRHR: Int? = nil
+
+    var remMin: Int? = nil
+    var deepMin: Int? = nil
+    var lightMin: Int? = nil
+    var awakeMin: Int? = nil
+    var sleepCycles: Int? = nil
+    var hypnogramJSON: String? = nil
+}
+
+// MARK: - Sleep stages
+
+enum SleepStage: String, Codable, CaseIterable {
+    case awake
+    case rem
+    case light    // Apple "Core" / Whoop "Light"
+    case deep     // Apple "Deep" / Whoop "Slow Wave"
+
+    var displayName: String {
+        switch self {
+        case .awake: return "Awake"
+        case .rem:   return "REM"
+        case .light: return "Core"
+        case .deep:  return "Deep"
+        }
+    }
+
+    /// Apple Health uses warm/red for Awake and a blue ramp (light → dark) for sleep depth.
+    /// Tuned to read against the warm dark surface.
+    var color: Color {
+        switch self {
+        case .awake: return Color(red: 0xE5/255, green: 0x9A/255, blue: 0x6E/255)
+        case .rem:   return Color(red: 0xA8/255, green: 0xC8/255, blue: 0xEB/255)
+        case .light: return Color(red: 0x5A/255, green: 0x92/255, blue: 0xD0/255)
+        case .deep:  return Color(red: 0x2F/255, green: 0x4F/255, blue: 0x8E/255)
+        }
+    }
+}
+
+/// One contiguous span of a single sleep stage. Stored as a flat array per night
+/// in `SleepLog.hypnogramJSON`.
+struct HypnogramEvent: Codable {
+    let stage: SleepStage
+    let start: Date
+    let end: Date
+
+    var minutes: Int { max(0, Int(end.timeIntervalSince(start) / 60)) }
+}
+
+extension Array where Element == HypnogramEvent {
+    /// Encode to compact JSON for storage.
+    var jsonString: String? {
+        let enc = JSONEncoder()
+        enc.dateEncodingStrategy = .iso8601
+        guard let data = try? enc.encode(self) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func decode(_ json: String?) -> [HypnogramEvent] {
+        guard let json, let data = json.data(using: .utf8) else { return [] }
+        let dec = JSONDecoder()
+        dec.dateDecodingStrategy = .iso8601
+        return (try? dec.decode([HypnogramEvent].self, from: data)) ?? []
+    }
 }
 
 // MARK: - Computed metrics
@@ -96,6 +182,29 @@ extension SleepLog {
 
     var hoursDecimal: Double {
         (Double(tst) / 60.0 * 10).rounded() / 10
+    }
+
+    /// True when this log has any stage breakdown to display.
+    var hasStageData: Bool {
+        (remMin ?? 0) + (deepMin ?? 0) + (lightMin ?? 0) > 0
+    }
+
+    /// Stage-derived total sleep time (rem + light + deep). Falls back to `tst` if unavailable.
+    /// More accurate than the `tst` calculation when stages are present, because TIB excludes
+    /// only manual latency/wake estimates.
+    var tstFromStages: Int? {
+        guard hasStageData else { return nil }
+        return (remMin ?? 0) + (deepMin ?? 0) + (lightMin ?? 0)
+    }
+
+    /// REM + Deep — Whoop's "restorative sleep" metric.
+    var restorativeMin: Int? {
+        guard let r = remMin, let d = deepMin else { return nil }
+        return r + d
+    }
+
+    var hypnogram: [HypnogramEvent] {
+        Array<HypnogramEvent>.decode(hypnogramJSON)
     }
 }
 

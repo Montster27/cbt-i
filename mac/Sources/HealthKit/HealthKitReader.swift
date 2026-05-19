@@ -74,6 +74,9 @@ final class HealthKitReader {
         let hrv = try? await averageQuantity(type: hrvType, start: analysis.inBedStart, end: analysis.outBedEnd, unit: HKUnit.secondUnit(with: .milli))
         let rhr = try? await averageQuantity(type: rhrType, start: analysis.inBedStart, end: analysis.outBedEnd, unit: HKUnit.count().unitDivided(by: HKUnit.minute()))
 
+        let hypno = buildHypnogram(from: session)
+        let hasStages = analysis.remMin + analysis.deepMin + analysis.lightMin > 0
+
         return SleepLogDraft(
             date: ymdLocal(analysis.outBedEnd),
             inBed: hhmmLocal(analysis.inBedStart),
@@ -88,8 +91,52 @@ final class HealthKitReader {
             whoopStrain: nil,
             whoopRecovery: nil,
             whoopHRV: hrv,
-            whoopRHR: rhr.map { Int($0.rounded()) }
+            whoopRHR: rhr.map { Int($0.rounded()) },
+            remMin: hasStages ? analysis.remMin : nil,
+            deepMin: hasStages ? analysis.deepMin : nil,
+            lightMin: hasStages ? analysis.lightMin : nil,
+            awakeMin: hasStages ? analysis.wakeMin : nil,
+            sleepCycles: nil,
+            hypnogramJSON: hypno.isEmpty ? nil : hypno.jsonString
         )
+    }
+
+    /// Builds a normalized event sequence ready to feed the hypnogram view.
+    /// Adjacent same-stage samples are merged so the view doesn't render hairline seams.
+    private func buildHypnogram(from samples: [HKCategorySample]) -> [HypnogramEvent] {
+        let staged: [HypnogramEvent] = samples
+            .sorted { $0.startDate < $1.startDate }
+            .compactMap { sample in
+                guard let stage = stage(for: sample.value) else { return nil }
+                return HypnogramEvent(stage: stage, start: sample.startDate, end: sample.endDate)
+            }
+        guard !staged.isEmpty else { return [] }
+
+        var merged: [HypnogramEvent] = []
+        for ev in staged {
+            if let last = merged.last, last.stage == ev.stage, ev.start <= last.end.addingTimeInterval(60) {
+                merged[merged.count - 1] = HypnogramEvent(stage: last.stage, start: last.start, end: max(last.end, ev.end))
+            } else {
+                merged.append(ev)
+            }
+        }
+        return merged
+    }
+
+    private func stage(for value: Int) -> SleepStage? {
+        switch value {
+        case HKCategoryValueSleepAnalysis.awake.rawValue:
+            return .awake
+        case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
+            return .rem
+        case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
+            return .deep
+        case HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+             HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
+            return .light
+        default:
+            return nil  // inBed and others — bracketing only, not stage data.
+        }
     }
 
     // MARK: - sample analysis
@@ -101,6 +148,9 @@ final class HealthKitReader {
         let latencyMin: Int
         let wakeCount: Int
         let wakeMin: Int
+        let remMin: Int
+        let deepMin: Int
+        let lightMin: Int
     }
 
     private func mostRecentSession(in samples: [HKCategorySample]) -> [HKCategorySample] {
@@ -147,13 +197,32 @@ final class HealthKitReader {
         let wakeMin = mergedWake.reduce(0) { $0 + Int($1.1.timeIntervalSince($1.0) / 60) }
         let wakeCount = mergedWake.count
 
+        // Per-stage totals. Apple Watch is the typical source; older devices may only
+        // emit `.asleepUnspecified`, which we treat as light.
+        func stageMinutes(_ rawValue: Int) -> Int {
+            let merged = mergeOverlapping(
+                samples
+                    .filter { $0.value == rawValue }
+                    .map { ($0.startDate, $0.endDate) }
+            )
+            return merged.reduce(0) { $0 + Int($1.1.timeIntervalSince($1.0) / 60) }
+        }
+        let remMin = stageMinutes(HKCategoryValueSleepAnalysis.asleepREM.rawValue)
+        let deepMin = stageMinutes(HKCategoryValueSleepAnalysis.asleepDeep.rawValue)
+        let lightMin =
+            stageMinutes(HKCategoryValueSleepAnalysis.asleepCore.rawValue) +
+            stageMinutes(HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue)
+
         return SessionAnalysis(
             inBedStart: inBedStart,
             outBedEnd: outBedEnd,
             tib: tib,
             latencyMin: latencyMin,
             wakeCount: wakeCount,
-            wakeMin: wakeMin
+            wakeMin: wakeMin,
+            remMin: remMin,
+            deepMin: deepMin,
+            lightMin: lightMin
         )
     }
 
