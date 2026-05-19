@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 enum Tab: String, CaseIterable {
+    case today = "Today"
     case program = "Program"
     case log = "Morning Log"
     case progress = "Progress"
@@ -9,18 +10,26 @@ enum Tab: String, CaseIterable {
 
     var icon: String {
         switch self {
-        case .program: return "calendar"
-        case .log: return "pencil.and.list.clipboard"
+        case .today:    return "moon.stars.fill"
+        case .program:  return "book.closed.fill"
+        case .log:      return "sun.horizon.fill"
         case .progress: return "chart.line.uptrend.xyaxis"
-        case .tools: return "wrench.and.screwdriver"
+        case .tools:    return "wrench.and.screwdriver"
         }
     }
 }
 
 struct ContentView: View {
     @Query private var logs: [SleepLog]
-    @State private var selection: Tab? = .program
+    @State private var selection: Tab? = .today
     @State private var showingSettings = false
+
+    private var unwrappedSelection: Binding<Tab> {
+        Binding(
+            get: { selection ?? .today },
+            set: { selection = $0 }
+        )
+    }
 
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var hSizeClass
@@ -34,24 +43,32 @@ struct ContentView: View {
         #if os(iOS)
         if hSizeClass == .compact {
             tabsView
+                .preferredColorScheme(.dark)
+                .tint(.warmAmber)
         } else {
             sidebarView
+                .preferredColorScheme(.dark)
+                .tint(.warmAmber)
         }
         #else
         sidebarView
+            .preferredColorScheme(.dark)
+            .tint(.warmAmber)
         #endif
     }
 
     // MARK: - iPhone (compact): bottom tab bar
 
     private var tabsView: some View {
-        TabView(selection: $selection) {
+        TabView(selection: unwrappedSelection) {
             ForEach(Tab.allCases, id: \.self) { tab in
                 NavigationStack {
                     tabContent(tab)
-                        .navigationTitle(tab.rawValue)
+                        .navigationTitle(tab == .today ? "" : tab.rawValue)
                         #if os(iOS)
-                        .navigationBarTitleDisplayMode(.inline)
+                        .navigationBarTitleDisplayMode(tab == .today ? .inline : .large)
+                        .toolbarBackground(Color.bgApp, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
                         #endif
                         .toolbar { settingsToolbarItem }
                 }
@@ -76,27 +93,39 @@ struct ContentView: View {
                     Label {
                         HStack {
                             Text(tab.rawValue)
+                                .foregroundStyle(selection == tab ? Color.warmAmberStrong : Color.fg2)
                             if tab == .log && !hasToday {
                                 Spacer()
                                 Circle()
-                                    .fill(.blue)
+                                    .fill(Color.warmAmber)
                                     .frame(width: 6, height: 6)
                             }
                         }
                     } icon: {
                         Image(systemName: tab.icon)
+                            .foregroundStyle(selection == tab ? Color.warmAmber : Color.fg3)
                     }
                     .tag(tab)
+                    .listRowBackground(Color.clear)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.bgApp.ignoresSafeArea())
             .navigationTitle("CBT-I")
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
             #if os(iOS)
             .toolbar { settingsToolbarItem }
+            .toolbarBackground(Color.bgApp, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             #endif
         } detail: {
-            tabContent(selection ?? .program)
+            tabContent(selection ?? .today)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.bgApp.ignoresSafeArea())
+                #if os(iOS)
+                .toolbarBackground(Color.bgApp, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                #endif
                 #if os(macOS)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
@@ -123,6 +152,7 @@ struct ContentView: View {
     @ViewBuilder
     private func tabContent(_ tab: Tab) -> some View {
         switch tab {
+        case .today:    TodayTab(selectedTab: $selection)
         case .program:  ProgramTab()
         case .log:      LogTab()
         case .progress: ProgressTab()
@@ -137,6 +167,7 @@ struct ContentView: View {
                 showingSettings = true
             } label: {
                 Image(systemName: "gear")
+                    .foregroundStyle(Color.fg2)
             }
             .accessibilityLabel("Settings")
         }
@@ -144,17 +175,38 @@ struct ContentView: View {
 
     private var settingsSheet: some View {
         NavigationStack {
-            WhoopSettingsPane()
-                .padding(20)
-                .navigationTitle("Settings")
-                #if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
-                #endif
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") { showingSettings = false }
-                    }
+            List {
+                NavigationLink {
+                    iCloudSyncPane()
+                        .padding(20)
+                        .navigationTitle("iCloud sync")
+                        #if os(iOS)
+                        .navigationBarTitleDisplayMode(.inline)
+                        #endif
+                } label: {
+                    Label("iCloud sync", systemImage: "icloud")
                 }
+
+                NavigationLink {
+                    WhoopSettingsPane()
+                        .padding(20)
+                        .navigationTitle("Whoop")
+                        #if os(iOS)
+                        .navigationBarTitleDisplayMode(.inline)
+                        #endif
+                } label: {
+                    Label("Whoop integration", systemImage: "waveform.path.ecg")
+                }
+            }
+            .navigationTitle("Settings")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { showingSettings = false }
+                }
+            }
         }
     }
 }

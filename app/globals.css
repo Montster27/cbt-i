@@ -1,53 +1,69 @@
+/* ─── CBT-i Nighttime Design Tokens (warm-locked) ──────────────── */
+
 :root {
-  --color-background-primary: #FAF9F7;
-  --color-background-secondary: #F3F1ED;
-  --color-background-tertiary: #E9E6E0;
-  --color-background-info: #E7EFF8;
-  --color-background-success: #E7F0DF;
-  --color-background-warning: #F8ECDD;
+  /* Night palette — deep navy/charcoal */
+  --night-950: #060912;
+  --night-900: #0b111e;
+  --night-850: #10182a;
+  --night-800: #16203a;
+  --night-750: #1c2945;
+  --night-700: #232f4d;
+  --night-100: #ebeef7;
 
-  --color-text-primary: #1F1E1C;
-  --color-text-secondary: #4A4844;
-  --color-text-tertiary: #807C75;
-  --color-text-info: #185FA5;
-  --color-text-success: #3B6D11;
-  --color-text-warning: #854F0B;
+  /* Moonlit sky — primary accent */
+  --sky-700: #2c5b8c;
+  --sky-500: #5a92d0;
+  --sky-400: #79abe0;
+  --sky-300: #99c1ea;
 
-  --color-border-primary: #C5BFB4;
-  --color-border-secondary: #D4CFC4;
-  --color-border-tertiary: #E0DBD0;
-  --color-border-info: #B6CFE6;
-  --color-border-success: #BFD4A5;
-  --color-border-warning: #E5C896;
+  /* Firelight — warm subtle accent */
+  --warm-700: #8a5a2a;
+  --warm-500: #cc9460;
+  --warm-400: #dba87a;
+  --warm-300: #e7bf99;
+  --warm-200: #efd3b4;
 
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
-}
+  /* Status */
+  --good-400: #7ab78b;
+  --good-300: #95cba2;
+  --warn-400: #d9b35a;
+  --warn-300: #e5c780;
+  --crit-400: #d97c7c;
+  --crit-300: #e69b9b;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background-primary: #1F1E1C;
-    --color-background-secondary: #2A2825;
-    --color-background-tertiary: #38352F;
-    --color-background-info: #1A3A5E;
-    --color-background-success: #1F3D17;
-    --color-background-warning: #4D3514;
+  /* Warm locked surfaces */
+  --bg-app: #1a1410;
+  --bg-surface: #221a14;
+  --bg-elev: #2a201a;
+  --bg-elev-2: #312620;
+  --bg-chip: #3a2e26;
+  --border-soft: rgba(245, 220, 188, 0.06);
+  --border: rgba(245, 220, 188, 0.11);
+  --border-strong: rgba(245, 220, 188, 0.18);
 
-    --color-text-primary: #F0EDE6;
-    --color-text-secondary: #BDB8AE;
-    --color-text-tertiary: #807C75;
-    --color-text-info: #7FB1E0;
-    --color-text-success: #9CC375;
-    --color-text-warning: #D9AE6B;
+  --fg-1: #f5ece0;
+  --fg-2: #d9c9b3;
+  --fg-3: #a89580;
+  --fg-4: #7d6c5a;
 
-    --color-border-primary: #5A554D;
-    --color-border-secondary: #46423C;
-    --color-border-tertiary: #38352F;
-    --color-border-info: #2A5380;
-    --color-border-success: #2F5524;
-    --color-border-warning: #6B4A1F;
-  }
-  html { color-scheme: dark; }
+  --accent: #e5bc92;
+  --accent-soft: rgba(229, 188, 146, 0.14);
+  --accent-strong: #f0d2b0;
+  --warm: #e5bc92;
+  --warm-soft: rgba(229, 188, 146, 0.14);
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.35);
+  --shadow-soft: 0 8px 28px rgba(0,0,0,0.28);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), "Iowan Old Style", "Charter", "Georgia", serif;
+  --font-mono: var(--font-geist-mono), "SF Mono", ui-monospace, monospace;
 }
 
 * {
@@ -60,57 +76,145 @@ html, body {
   height: 100%;
 }
 
+html {
+  color-scheme: dark;
+}
+
 body {
-  background: var(--color-background-primary);
-  color: var(--color-text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  background: var(--bg-app);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   font-size: 14px;
   line-height: 1.5;
 }
 
-main {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 1.5rem 1.25rem 4rem;
-}
-
 button {
   font-family: inherit;
-  background: var(--color-background-tertiary);
-  color: var(--color-text-primary);
-  border: 0.5px solid var(--color-border-secondary);
-  border-radius: var(--border-radius-md);
   cursor: pointer;
 }
 
-button:hover {
-  background: var(--color-background-secondary);
+/* ─── typography ────────────────────────────────────────────── */
+.display {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--fg-1);
+}
+.h1 {
+  font-family: var(--font-serif);
+  font-size: 26px; font-weight: 500;
+  letter-spacing: -0.015em; line-height: 1.15;
+  color: var(--fg-1);
+}
+.h2 {
+  font-family: var(--font-serif);
+  font-size: 20px; font-weight: 500;
+  letter-spacing: -0.01em; line-height: 1.2;
+  color: var(--fg-1);
+}
+.h3 {
+  font-size: 15px; font-weight: 600; color: var(--fg-1);
+  letter-spacing: -0.005em;
+}
+.body {
+  font-size: 14px; color: var(--fg-2);
+  line-height: 1.55;
+}
+.small {
+  font-size: 13px; color: var(--fg-3);
+  line-height: 1.5;
+}
+.meta {
+  font-size: 11px; color: var(--fg-4);
+  line-height: 1.4;
+}
+.kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
 }
 
-input[type="time"],
-input[type="number"] {
+/* ─── primitives ────────────────────────────────────────────── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+}
+.card-elev {
+  background: var(--bg-elev);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-chip);
+  color: var(--fg-2);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-soft);
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.chip-warm { background: var(--warm-soft); color: var(--warm); border-color: rgba(219,168,122,0.22); }
+.chip-accent { background: var(--accent-soft); color: var(--accent-strong); border-color: rgba(229,188,146,0.22); }
+.chip-good { background: rgba(122,183,139,0.12); color: var(--good-300); border-color: rgba(122,183,139,0.22); }
+
+button.reset {
+  background: none; border: none; padding: 0;
+  color: inherit; font: inherit; cursor: pointer;
+}
+
+.press {
+  transition: transform 120ms ease, background-color 120ms ease, opacity 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.press:active { transform: scale(0.97); opacity: 0.85; }
+
+/* iOS-style native inputs */
+input[type="time"] {
   font-family: inherit;
-  font-size: 14px;
-  padding: 6px 10px;
-  background: var(--color-background-primary);
-  color: var(--color-text-primary);
-  border: 0.5px solid var(--color-border-secondary);
-  border-radius: var(--border-radius-md);
+  font-size: 14px; font-weight: 500;
+  padding: 7px 12px;
+  background: var(--bg-elev-2);
+  color: var(--fg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+  color-scheme: dark;
+}
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7) sepia(0.3) saturate(2);
+  cursor: pointer;
 }
 
-input[type="range"] {
-  accent-color: #185FA5;
+/* keyframes */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
 }
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
 
 .sr-only {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
 }

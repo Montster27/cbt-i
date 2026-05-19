@@ -12,6 +12,7 @@
 		2E73A45D74959CE23C3961E1 /* ProgramTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = E690D0D967D45D014D81843D /* ProgramTab.swift */; };
 		2F88C47B9883C7E352DC4152 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE6E8D1B5B0381537598308 /* ContentView.swift */; };
 		348A218D5B7F912072445D76 /* ProgressTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC20E4C03E19829A2209291 /* ProgressTab.swift */; };
+		38A6C0BF1B43809CE02487A9 /* TodayTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C00FE80DDEA544206486FFA /* TodayTab.swift */; };
 		433878FC9C416422ED3742D9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9FF80FD5F95674D7E270752C /* Assets.xcassets */; };
 		47D9DCBB575DBDDD3A67BCC4 /* WhoopStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93CA0C42EF3DF065C2E4F4A2 /* WhoopStore.swift */; };
 		4D242517ABC8CC0C21074593 /* Exporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAFEB60F6D57F0493EA1D6DD /* Exporter.swift */; };
@@ -20,21 +21,26 @@
 		77C6E790188D2FC5BA0012F6 /* DataMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84DD392277985D8B01C0E8ED /* DataMigration.swift */; };
 		8B138C07E2CBC13D3A4DC518 /* HealthKitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C8717B0ADFE331F369A656 /* HealthKitReader.swift */; };
 		9A0BA542D3FB623299072333 /* CBTIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED112791B97B097EBF8720F /* CBTIApp.swift */; };
+		CA5DB0371AA9EDC34C70B736 /* iCloudSyncPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73389079301521A0992FDD1D /* iCloudSyncPane.swift */; };
 		CD438B12960C5259E99C441B /* ToolsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF877F8A0C3B8C2B74693D29 /* ToolsTab.swift */; };
 		DB9D21F06DC717ADC522CD24 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = A43A2E5CF6A53DA859DAFE81 /* Keychain.swift */; };
 		E10A2D5905B04751DE8AF8B2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0B8C1F1DBDBC30797E7B62 /* Models.swift */; };
 		E7FCBEB9626A03B9EE3449A6 /* WhoopAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C2B806C30C92D3A9E8DABB6 /* WhoopAPI.swift */; };
+		F71CD765AC9CDC0CA4A8AE7D /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B7CC62760F8E3B6BEE672A5 /* Theme.swift */; };
 		FF3FA707C23CEE92DA17E749 /* LogTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF693F6675BB4122C3C423B /* LogTab.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		03C8717B0ADFE331F369A656 /* HealthKitReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitReader.swift; sourceTree = "<group>"; };
+		1C00FE80DDEA544206486FFA /* TodayTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayTab.swift; sourceTree = "<group>"; };
 		331EC75BBB39E3D4F110187A /* WhoopModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopModels.swift; sourceTree = "<group>"; };
 		3351691D7A1B156169D69451 /* ProgramData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramData.swift; sourceTree = "<group>"; };
 		446803E7AB50D57FDB2FE8AB /* WhoopOAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopOAuth.swift; sourceTree = "<group>"; };
 		4529ABCFC4D6BA2A98AD4057 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		6AF693F6675BB4122C3C423B /* LogTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogTab.swift; sourceTree = "<group>"; };
 		6FC20E4C03E19829A2209291 /* ProgressTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressTab.swift; sourceTree = "<group>"; };
+		73389079301521A0992FDD1D /* iCloudSyncPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudSyncPane.swift; sourceTree = "<group>"; };
+		7B7CC62760F8E3B6BEE672A5 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		84DD392277985D8B01C0E8ED /* DataMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataMigration.swift; sourceTree = "<group>"; };
 		93CA0C42EF3DF065C2E4F4A2 /* WhoopStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhoopStore.swift; sourceTree = "<group>"; };
 		981ABDDE87B556919DFA21F3 /* CBTI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CBTI.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -66,12 +72,15 @@
 				FBE6E8D1B5B0381537598308 /* ContentView.swift */,
 				84DD392277985D8B01C0E8ED /* DataMigration.swift */,
 				BAFEB60F6D57F0493EA1D6DD /* Exporter.swift */,
+				73389079301521A0992FDD1D /* iCloudSyncPane.swift */,
 				6AF693F6675BB4122C3C423B /* LogTab.swift */,
 				EB0B8C1F1DBDBC30797E7B62 /* Models.swift */,
 				3351691D7A1B156169D69451 /* ProgramData.swift */,
 				E690D0D967D45D014D81843D /* ProgramTab.swift */,
 				6FC20E4C03E19829A2209291 /* ProgressTab.swift */,
 				4529ABCFC4D6BA2A98AD4057 /* SettingsView.swift */,
+				7B7CC62760F8E3B6BEE672A5 /* Theme.swift */,
+				1C00FE80DDEA544206486FFA /* TodayTab.swift */,
 				EF877F8A0C3B8C2B74693D29 /* ToolsTab.swift */,
 				1D943DF334BA591FE9F9DB94 /* HealthKit */,
 				E9C070275E4ACD6C4E89721F /* Whoop */,
@@ -114,6 +123,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 17EAA421346119FEDFCD124A /* Build configuration list for PBXNativeTarget "CBTI" */;
 			buildPhases = (
+				0D24F4004945FCDA2FCDD636 /* Stamp build number from git */,
 				1EF6CB7E57ACA82FA0A18A3A /* Sources */,
 				6FA80B48129452679D20F9A5 /* Resources */,
 			);
@@ -173,6 +183,28 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		0D24F4004945FCDA2FCDD636 /* Stamp build number from git */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Stamp build number from git";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\ncd \"${SRCROOT}/..\"\nif ! git rev-parse --git-dir > /dev/null 2>&1; then\n  echo \"warning: not a git repo, leaving CFBundleVersion as-is\"\n  exit 0\nfi\nCOMMITS=$(git rev-list HEAD --count)\n# Offset clears build numbers already uploaded to App Store Connect.\n# Bump this floor if you ever exhaust headroom.\nBUILD_NUMBER=$((COMMITS + 9))\nSRC_PLIST=\"${SRCROOT}/Info.plist\"\nif [ -f \"$SRC_PLIST\" ]; then\n  /usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${BUILD_NUMBER}\" \"$SRC_PLIST\"\n  echo \"Stamped CFBundleVersion = ${BUILD_NUMBER} (${COMMITS} commits + 9)\"\nelse\n  echo \"warning: source Info.plist not found at $SRC_PLIST\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		1EF6CB7E57ACA82FA0A18A3A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -190,11 +222,14 @@
 				2E73A45D74959CE23C3961E1 /* ProgramTab.swift in Sources */,
 				348A218D5B7F912072445D76 /* ProgressTab.swift in Sources */,
 				2175730FC6E272A63241B28F /* SettingsView.swift in Sources */,
+				F71CD765AC9CDC0CA4A8AE7D /* Theme.swift in Sources */,
+				38A6C0BF1B43809CE02487A9 /* TodayTab.swift in Sources */,
 				CD438B12960C5259E99C441B /* ToolsTab.swift in Sources */,
 				E7FCBEB9626A03B9EE3449A6 /* WhoopAPI.swift in Sources */,
 				1E783693300FC85955F98AA3 /* WhoopModels.swift in Sources */,
 				7277CB3865FDE80E481ED5AC /* WhoopOAuth.swift in Sources */,
 				47D9DCBB575DBDDD3A67BCC4 /* WhoopStore.swift in Sources */,
+				CA5DB0371AA9EDC34C70B736 /* iCloudSyncPane.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -329,7 +364,6 @@
 				CODE_SIGN_ENTITLEMENTS = CBTI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 9C4LVC9DR6;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Info.plist;
@@ -339,7 +373,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.montysharma.cbti;
 				PRODUCT_NAME = "CBT-I";
 				SDKROOT = auto;
@@ -358,7 +392,6 @@
 				CODE_SIGN_ENTITLEMENTS = CBTI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 9C4LVC9DR6;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Info.plist;
@@ -368,7 +401,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.montysharma.cbti;
 				PRODUCT_NAME = "CBT-I";
 				SDKROOT = auto;

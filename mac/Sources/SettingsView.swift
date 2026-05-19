@@ -2,10 +2,15 @@ import SwiftUI
 
 #if os(macOS)
 /// macOS-only: wrapped in the App's `Settings { ... }` scene. ⌘, opens it.
-/// On iOS, `ContentView` presents `WhoopSettingsPane` directly in a sheet.
+/// On iOS, `ContentView` presents a List of settings panes in a sheet.
 struct SettingsView: View {
     var body: some View {
         TabView {
+            iCloudSyncPane()
+                .tabItem { Label("iCloud", systemImage: "icloud") }
+                .padding(20)
+                .frame(width: 520, height: 360)
+
             WhoopSettingsPane()
                 .tabItem { Label("Whoop", systemImage: "waveform.path.ecg") }
                 .padding(20)

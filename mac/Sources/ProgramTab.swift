@@ -9,137 +9,211 @@ struct ProgramTab: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                weekPicker
-
-                let w = WEEKS[activeWeek]
-
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("WEEK \(activeWeek + 1)")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .kerning(1)
-
-                        Text(w.title)
-                            .font(.title3)
-                            .fontWeight(.medium)
-
-                        Text(w.theme)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        HStack(spacing: 10) {
-                            statTile("Bedtime", w.bedtime)
-                            statTile("Wake time", "5:45 AM")
-                        }
-                        .padding(.top, 4)
-
-                        Divider()
-
-                        Text("Rules for this week")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(Array(w.rules.enumerated()), id: \.offset) { i, rule in
-                                HStack(alignment: .top, spacing: 10) {
-                                    Text("\(i + 1)")
-                                        .font(.caption2)
-                                        .fontWeight(.semibold)
-                                        .frame(width: 22, height: 22)
-                                        .background(Color.accentColor.opacity(0.15))
-                                        .foregroundStyle(Color.accentColor)
-                                        .clipShape(Circle())
-                                    Text(rule)
-                                        .font(.callout)
-                                        .foregroundStyle(.primary.opacity(0.85))
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            }
-                        }
-                    }
-                    .padding(8)
-                }
-
-                GroupBox(label: Label("What to expect", systemImage: "info.circle")) {
-                    Text(w.expect)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                if let cognitive = w.cognitive {
-                    HStack(alignment: .top, spacing: 12) {
-                        Rectangle().fill(Color.accentColor).frame(width: 3)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("COGNITIVE FOCUS")
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.tertiary)
-                                .kerning(0.6)
-                            Text(cognitive)
-                                .font(.callout)
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 6)
-                }
+            VStack(alignment: .leading, spacing: 14) {
+                header
+                timeline
+                weekDetail
             }
-            .padding(20)
+            .padding(.horizontal, 18)
+            .padding(.top, 8)
+            .padding(.bottom, 36)
+        }
+        .scrollContentBackground(.hidden)
+        .appBackground()
+        .onAppear {
+            if activeWeek == 0 { activeWeek = max(0, currentWeek - 1) }
         }
     }
 
-    private var weekPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(WEEKS) { w in
-                    let i = w.id - 1
-                    let isCurrent = w.id == currentWeek
-                    let isActive = i == activeWeek
-                    Button {
-                        activeWeek = i
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text("Week \(w.id)")
-                            if isCurrent { Text("←").font(.caption) }
-                        }
-                        .font(.caption)
-                        .fontWeight(isActive ? .semibold : .regular)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(
-                            Capsule().fill(
-                                isCurrent ? Color.accentColor.opacity(0.18) :
-                                isActive ? Color.secondary.opacity(0.18) : Color.clear
-                            )
-                        )
-                        .overlay(
-                            Capsule().stroke(
-                                isCurrent ? Color.accentColor.opacity(0.6) :
-                                isActive ? Color.primary.opacity(0.4) : Color.secondary.opacity(0.3),
-                                lineWidth: 0.5
-                            )
-                        )
-                        .foregroundStyle(isCurrent ? Color.accentColor : .primary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private func statTile(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption2).foregroundStyle(.tertiary)
-            Text(value).font(.subheadline).fontWeight(.medium)
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("6-WEEK PROGRAM").kicker()
+            Text("Restructure sleep, gently.")
+                .font(.serifH1)
+                .foregroundStyle(Color.fg1)
+                .padding(.bottom, 8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(Color.secondary.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var timeline: some View {
+        VStack(spacing: 2) {
+            ForEach(Array(WEEKS.enumerated()), id: \.offset) { idx, w in
+                timelineRow(week: w, index: idx)
+            }
+        }
+        .padding(.bottom, 4)
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(Color.borderSoft)
+                .frame(width: 2)
+                .padding(.leading, 19)
+                .padding(.vertical, 18)
+        }
+    }
+
+    private func timelineRow(week: WeekContent, index: Int) -> some View {
+        let state = stateOf(index: index)
+        let isSelected = activeWeek == index
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) { activeWeek = index }
+        } label: {
+            HStack(alignment: .center, spacing: 14) {
+                node(for: state, label: "\(week.id)")
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(week.theme)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(state == .upcoming ? Color.fg2 : Color.fg1)
+                        if state == .current {
+                            WarmChip(text: "now", tint: .accent)
+                        }
+                    }
+                    Text(week.title)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.fg4)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 8)
+            .padding(.trailing, 10)
+            .padding(.leading, 0)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Color.warmAmberSoft : .clear)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private enum WeekState { case done, current, upcoming }
+    private func stateOf(index: Int) -> WeekState {
+        if index + 1 < currentWeek { return .done }
+        if index + 1 == currentWeek { return .current }
+        return .upcoming
+    }
+
+    private func node(for state: WeekState, label: String) -> some View {
+        Group {
+            switch state {
+            case .done:
+                ZStack {
+                    Circle().fill(Color.warmAmber)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color(red: 0x06/255, green: 0x09/255, blue: 0x12/255))
+                }
+            case .current:
+                ZStack {
+                    Circle().fill(Color.bgApp)
+                    Circle().strokeBorder(Color.warmAmber, lineWidth: 2)
+                    Circle()
+                        .strokeBorder(Color.warmAmber.opacity(0.18), lineWidth: 6)
+                        .scaleEffect(1.3)
+                        .blur(radius: 2)
+                    Text(label)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.warmAmberStrong)
+                }
+            case .upcoming:
+                ZStack {
+                    Circle()
+                        .fill(Color.bgSurface)
+                        .overlay(Circle().strokeBorder(Color.borderDefault, lineWidth: 1))
+                    Text(label)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.fg4)
+                }
+            }
+        }
+        .frame(width: 40, height: 40)
+    }
+
+    private var weekDetail: some View {
+        let w = WEEKS[activeWeek]
+        return VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("WEEK \(w.id)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.warmAmberStrong)
+                Text(w.theme)
+                    .font(.serifH2)
+                    .foregroundStyle(Color.fg1)
+                Text(w.title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.fg3)
+                HStack(spacing: 8) {
+                    WarmChip(text: "Bed \(w.bedtime)", systemImage: "moon.fill")
+                    WarmChip(text: "Wake 5:45 AM", systemImage: "sun.max.fill")
+                }
+                .padding(.top, 6)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+
+            Divider().background(Color.borderSoft)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("RULES THIS WEEK").kicker()
+                ForEach(Array(w.rules.enumerated()), id: \.offset) { i, rule in
+                    if i > 0 { Divider().background(Color.borderSoft) }
+                    HStack(alignment: .top, spacing: 12) {
+                        Circle().fill(Color.warmAmber).frame(width: 4, height: 4).padding(.top, 8)
+                        Text(rule)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.fg2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+
+            Divider().background(Color.borderSoft)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("WHAT TO EXPECT")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.warmAmber)
+                Text(w.expect)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.fg2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.warmAmber.opacity(0.05))
+
+            if let cog = w.cognitive {
+                Divider().background(Color.borderSoft)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("COGNITIVE FOCUS")
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(Color.skyAccent)
+                    Text(cog)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.fg2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.skyAccent.opacity(0.06))
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.bgElev)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.borderSoft, lineWidth: 1)
+                )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
