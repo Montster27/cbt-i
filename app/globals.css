@@ -209,6 +209,21 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   50% { opacity: 1; }
 }
 
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.05); opacity: 0.3; }
+}
+
+@keyframes breathing-inhale {
+  from { transform: scale(1); }
+  to { transform: scale(1.2); }
+}
+
+@keyframes breathing-exhale {
+  from { transform: scale(1.2); }
+  to { transform: scale(1); }
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
