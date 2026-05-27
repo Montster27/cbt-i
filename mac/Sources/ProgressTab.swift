@@ -5,7 +5,8 @@ import Charts
 struct ProgressTab: View {
     @Query(sort: \SleepLog.date) private var logs: [SleepLog]
 
-    var recentLogs: [SleepLog] { Array(logs.suffix(14)) }
+    /// Number of nights visible in each horizontally-scrollable chart at once.
+    private let visibleWindow = 14
 
     var body: some View {
         ScrollView {
@@ -24,7 +25,7 @@ struct ProgressTab: View {
                         valueFormatter: { "\($0)%" },
                         referenceLine: 85,
                         color: Color.warmAmber,
-                        values: recentLogs.map { (log: $0, y: Double($0.se)) }
+                        values: logs.map { (log: $0, y: Double($0.se)) }
                     )
                     chartSection(
                         title: "Sleep quality",
@@ -32,15 +33,15 @@ struct ProgressTab: View {
                         valueFormatter: { "\(Int($0))/10" },
                         referenceLine: nil,
                         color: Color.skyAccent,
-                        values: recentLogs.map { (log: $0, y: Double($0.quality)) }
+                        values: logs.map { (log: $0, y: Double($0.quality)) }
                     )
                     statsRow
 
-                    if recentLogs.contains(where: { $0.hasStageData }) {
+                    if logs.contains(where: { $0.hasStageData }) {
                         sleepStagesChart
                     }
 
-                    if recentLogs.contains(where: { $0.whoopRecovery != nil || $0.whoopStrain != nil }) {
+                    if logs.contains(where: { $0.whoopRecovery != nil || $0.whoopStrain != nil }) {
                         recoveryStrainChart
                     }
                 }
@@ -243,12 +244,13 @@ struct ProgressTab: View {
     /// Stacked-bar trend — one bar per night, stages from bottom up: Deep, Core (Light),
     /// REM, Awake. Matches Apple Health's "Sleep stages over time" view.
     private var sleepStagesChart: some View {
-        let stagedLogs = recentLogs.filter { $0.hasStageData }
+        let stagedLogs = logs.filter { $0.hasStageData }
         let avgRestorative: Int = {
             let vals = stagedLogs.compactMap { $0.restorativeMin }
             guard !vals.isEmpty else { return 0 }
             return vals.reduce(0, +) / vals.count
         }()
+        let initialX = stagedLogs.last.map { String($0.date.suffix(5)) } ?? ""
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -260,7 +262,7 @@ struct ProgressTab: View {
                     WarmChip(text: "Avg restorative \(avgRestorative / 60)h \(avgRestorative % 60)m")
                 }
             }
-            Text(stagedLogs.count > 14 ? "Last 14 nights" : "\(stagedLogs.count) nights")
+            Text(stagedLogs.count > visibleWindow ? "\(stagedLogs.count) nights · swipe to scroll" : "\(stagedLogs.count) nights")
                 .font(.system(size: 11))
                 .foregroundStyle(Color.fg4)
 
@@ -303,6 +305,9 @@ struct ProgressTab: View {
                 SleepStage.awake.displayName: SleepStage.awake.color,
             ])
             .chartLegend(position: .bottom, alignment: .leading, spacing: 8)
+            .chartScrollableAxes(.horizontal)
+            .chartXVisibleDomain(length: visibleWindow)
+            .chartScrollPosition(initialX: initialX)
             .chartXAxis {
                 AxisMarks { _ in
                     AxisValueLabel().foregroundStyle(Color.fg4)
@@ -325,7 +330,8 @@ struct ProgressTab: View {
     }
 
     private var recoveryStrainChart: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let initialX = logs.last.map { String($0.date.suffix(5)) } ?? ""
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 Text("Activity vs. sleep")
                     .font(.subheadline)
@@ -336,7 +342,7 @@ struct ProgressTab: View {
                 legendChip("Sleep eff", color: Color.secondary)
             }
             Chart {
-                ForEach(recentLogs, id: \.persistentModelID) { log in
+                ForEach(logs, id: \.persistentModelID) { log in
                     let dateLabel = String(log.date.suffix(5))
                     if let strain = log.whoopStrain {
                         // Strain is on a 0–21 scale; map to 0–100 visually so it shares the axis.
@@ -370,6 +376,9 @@ struct ProgressTab: View {
                 }
             }
             .chartYScale(domain: 0...100)
+            .chartScrollableAxes(.horizontal)
+            .chartXVisibleDomain(length: visibleWindow)
+            .chartScrollPosition(initialX: initialX)
             .frame(height: 200)
             Text("Strain (yesterday's activity) is shown scaled to the same axis as recovery and sleep efficiency for visual correlation.")
                 .font(.caption2)
@@ -392,7 +401,8 @@ struct ProgressTab: View {
         color: Color,
         values: [(log: SleepLog, y: Double)]
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let initialX = values.last.map { String($0.log.date.suffix(5)) } ?? ""
+        return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
@@ -402,7 +412,7 @@ struct ProgressTab: View {
                     WarmChip(text: "Avg \(avg)%")
                 }
             }
-            Text(values.count > 14 ? "Last 14 nights" : "\(values.count) nights")
+            Text(values.count > visibleWindow ? "\(values.count) nights · swipe to scroll" : "\(values.count) nights")
                 .font(.system(size: 11))
                 .foregroundStyle(Color.fg4)
             Chart {
@@ -431,6 +441,9 @@ struct ProgressTab: View {
             ])
             .chartLegend(.hidden)
             .chartYScale(domain: yDomain)
+            .chartScrollableAxes(.horizontal)
+            .chartXVisibleDomain(length: visibleWindow)
+            .chartScrollPosition(initialX: initialX)
             .chartXAxis {
                 AxisMarks { _ in
                     AxisValueLabel().foregroundStyle(Color.fg4)
